@@ -16,17 +16,20 @@ def allowed_file(filename):
 
 async def save_file(file: UploadFile, user_id: str) -> Upload:
     try:
+        upload = await save_in_db_file(file, user_id)
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="File type not allowed")
         os.mkdir(TEMP_DIR)
     except FileExistsError:
         pass
-    file_path = os.path.join(TEMP_DIR, file.filename)
+    print(file)
+    file_extension = file.filename.split('.')[-1]
+    file_path = os.path.join(TEMP_DIR, upload.id + '.' + file_extension)
 
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    return await save_in_db_file(file, user_id)
+    
 
 def extract_text_from_file(file_path: str) -> str:
     ext = os.path.splitext(file_path)[-1].lower()
@@ -58,6 +61,7 @@ def extract_text_from_txt(file_path: str) -> str:
     
 
 async def save_in_db_file(file: UploadFile, user_id: str):
+    file_extension = file.filename.split('.')[-1]
     filename = file.filename
     file_path = os.path.join(TEMP_DIR, filename)
     upload = Upload(
@@ -65,9 +69,10 @@ async def save_in_db_file(file: UploadFile, user_id: str):
         user_id=user_id,
         filename=filename,
         content_type=file.content_type,
-        storage_path=file_path,
+        storage_url=file_path,
         uploaded_at=datetime.utcnow()
     )
+    upload.storage_url=upload.id + '.' + file_extension
     await mongo.db.uploads.insert_one(upload.dict())
 
     return upload
