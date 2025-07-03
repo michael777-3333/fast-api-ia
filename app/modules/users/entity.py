@@ -20,3 +20,9 @@ class User(UserCreate):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
+
+class AskRequest(BaseModel):
+    user_id: str
+    doc_ids: list[str] | None = None
+    question: str

@@ -7,4 +7,6 @@ async def upload_file():
 
 async def save_new_file(file: UploadFile = File(...), user_id: str = Form(...)):
     file_path = await save_file(file,user_id)
-    return {"filename": file.filename, "saved_to": file_path}
+    return file_path
+
+# async def sppliter_text_docs()
