@@ -8,6 +8,8 @@ from datetime import datetime
 from .entity import Upload
 from app.db.mongo import mongo
 from app.gemini.connect_ia import splitter_text,save_data_in_chroma
+from bson import ObjectId
+from datetime import datetime
 TEMP_DIR = "temp_uploads"
 ALLOWED_EXTENSIONS = ["pdf", "docx", "txt"]
 
@@ -17,9 +19,9 @@ def allowed_file(filename):
 
 async def save_file(file: UploadFile, user_id: str) -> Upload:
     try:
-        upload = await save_in_db_file(file, user_id)
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="File type not allowed")
+        upload = await save_in_db_file(file, user_id)
         os.mkdir(TEMP_DIR)
     except FileExistsError:
         pass
@@ -29,7 +31,6 @@ async def save_file(file: UploadFile, user_id: str) -> Upload:
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    print(upload.id)
     upload.extracted_text = extract_text_from_file(file_path)
     await mongo.db.uploads.update_one({"id": upload.id}, {"$set": {"extracted_text": upload.extracted_text}})
     # await invoke('I love programming.')
@@ -84,7 +85,25 @@ async def save_in_db_file(file: UploadFile, user_id: str):
 
     return upload
 
-async def sliter_text(text:str):
-    print(text)
+# async def sliter_text(text:str):
+#     print(text)
 
-    await splitter_text(text)
+#     await splitter_text(text)
+
+
+async def get_upload_by_id(upload_id: str):
+    upload = await mongo.db.uploads.find_one({"id": upload_id})
+    if not upload:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    return serialize_mongo_document(upload)
+
+def serialize_mongo_document(doc: dict) -> dict:
+    new_doc = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            new_doc[key] = str(value)
+        elif isinstance(value, datetime):
+            new_doc[key] = value.isoformat()
+        else:
+            new_doc[key] = value
+    return new_doc

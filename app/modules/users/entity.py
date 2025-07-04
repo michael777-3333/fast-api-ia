@@ -26,3 +26,6 @@ class AskRequest(BaseModel):
     user_id: str
     doc_ids: list[str] | None = None
     question: str
+
+class Get_uploads(BaseModel):
+    user_id: str
